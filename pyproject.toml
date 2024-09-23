@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "message-sdk"
+name = "mtds"
 version = "0.0.2"
 description = ""
 authors = ["wondera <dev@wondera.com>"]
