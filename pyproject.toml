@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "message-sdk"
+version = "0.0.1"
+description = ""
+authors = ["wondera <dev@wondera.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.isort]
+force-single-line = true
+
+[tool.ruff.lint]
+select = [
+    "F",    # pyflakes
+    "E",    # pycodestyle Error
+    "W",    # pycodestyle Warning
+    "C901", # complex-structure
+    "UP",   # pyupgrade
+    "I",    # isort
+    "PD",   # pandas-vet
+    "NPY",  # NumPy-specific rules
+]
+ignore = ["F401"]
+preview = true
+
+
+[tool.ruff.format]
+quote-style = "double"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
