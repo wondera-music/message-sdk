@@ -1,16 +1,11 @@
 import asyncio
-from pathlib import Path
 
-import aiohttp
-from common.config import CONFIG
-from common.logger import logger
-
-from message_sdk import MessageSDK
+from mtds import MTDS
 
 
 async def main():
     # 创建sdk实例
-    sdk = MessageSDK(
+    sdk = MTDS(
         # kafka服务器地址
         bootstrap_servers=["127.0.0.1:9092"],
         # model name, 歌词生成就填lyrc_generate

@@ -1,4 +1,4 @@
-from message_sdk import MessageSDK
+from mtds import MTDS
 
 
 # 消息回调函数
@@ -18,7 +18,7 @@ def message_handler(sdk, topic, partition, offset, message):
 
 if __name__ == "__main__":
     # 创建sdk实例
-    sdk = MessageSDK(
+    sdk = MTDS(
         # kafka服务器地址
         bootstrap_servers=["127.0.0.1:9092"],
         # model name, 歌词生成就填lyrc_generate

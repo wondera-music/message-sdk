@@ -11,7 +11,7 @@ from confluent_kafka import KafkaException
 from confluent_kafka import Producer
 
 
-class MessageSDK:
+class MTDS:
     # TODO 单例模式
     def __init__(
         self,
@@ -42,12 +42,12 @@ class MessageSDK:
         elif isinstance(bootstrap_servers, str):
             self._bootstrap_servers = bootstrap_servers
         else:
-            raise ValueError('bootstrap_servers must be a valid string or list')
+            raise ValueError("bootstrap_servers must be a valid string or list")
 
         if not (bool(app) ^ bool(model)):
-            raise ValueError('app and model can only be set one of them at the same time')
+            raise ValueError("app and model can only be set one of them at the same time")
 
-        for name, value in {'group_id': group_id, 'app': app, 'model': model}.items():
+        for name, value in {"group_id": group_id, "app": app, "model": model}.items():
             if value:
                 self._validate_non_empty_string(value, name)
 
@@ -57,51 +57,51 @@ class MessageSDK:
 
         self._init_topics()
 
-        self.print_skd_info()
+        # self.print_skd_info()
 
         self._connect_kafka()
 
     # TODO
     def print_skd_info(self):
-        print(f'bootstrap_servers: {self._bootstrap_servers}')
-        print(f'group_id: {self.group_id}')
-        print(f'app: {self.app}')
-        print(f'model: {self.model}')
-        print(f'subscribed_topics: {self.subscribed_topics}')
-        print(f'dest_topics: {self.dest_topics}')
+        print(f"bootstrap_servers: {self._bootstrap_servers}")
+        print(f"group_id: {self.group_id}")
+        print(f"app: {self.app}")
+        print(f"model: {self.model}")
+        print(f"subscribed_topics: {self.subscribed_topics}")
+        print(f"dest_topics: {self.dest_topics}")
 
     @staticmethod
     def _validate_non_empty_string(value, name):
         if not isinstance(value, str) or not value.strip():
-            raise ValueError(f'{name} must be a valid non-empty string')
+            raise ValueError(f"{name} must be a valid non-empty string")
 
     def set_message_handler(self, handler):
         if not callable(handler):
-            raise ValueError('message_handler must be a callable function')
+            raise ValueError("message_handler must be a callable function")
         self.__message_handler = handler
 
     def _init_topics(self):
         if self.model is not None:
             self.subscribed_topics.add(self.model)
-            self.dest_topics.add(f'{self.model}_result')
+            self.dest_topics.add(f"{self.model}_result")
 
     def _connect_kafka(self):
-        print(f'Trying to connect to Kafka:{self._bootstrap_servers}')
+        print(f"Trying to connect to Kafka:{self._bootstrap_servers}")
 
         def error_cb(error_msg):
-            print(f'---------{error_msg=}')
+            print(f"---------{error_msg=}")
 
             if error_msg.code() is KafkaError._ALL_BROKERS_DOWN:
-                print('All Kafka brokers are down')
+                print("All Kafka brokers are down")
 
         try:
             self._consumer = Consumer(
                 {
-                    'bootstrap.servers': self._bootstrap_servers,
-                    'group.id': self.group_id,
-                    'auto.offset.reset': 'earliest',  # 如果消费者组没有偏移量，从最早的消息开始消费
-                    'allow.auto.create.topics': True,
-                    'enable.auto.commit': False,  # 关闭自动提交
+                    "bootstrap.servers": self._bootstrap_servers,
+                    "group.id": self.group_id,
+                    "auto.offset.reset": "earliest",  # 如果消费者组没有偏移量，从最早的消息开始消费
+                    "allow.auto.create.topics": True,
+                    "enable.auto.commit": False,  # 关闭自动提交
                     # 'auto.create.topics.enable': True,
                     # 'error_cb': error_cb,
                 }
@@ -111,15 +111,15 @@ class MessageSDK:
 
             self._producer = Producer(
                 {
-                    'bootstrap.servers': self._bootstrap_servers,
+                    "bootstrap.servers": self._bootstrap_servers,
                     # 'on_delivery': connect_callback,
-                    'error_cb': error_cb,
+                    "error_cb": error_cb,
                 }
             )
 
-            print(f'Connected to Kafka:{self._bootstrap_servers}')
+            print(f"Connected to Kafka:{self._bootstrap_servers}")
         except KafkaException as e:
-            print(f'Connect to Kafka error: {e}')
+            print(f"Connect to Kafka error: {e}")
             sys.exit(1)
 
     # def get_topics(self):
@@ -152,61 +152,60 @@ class MessageSDK:
 
     def _delivery_callback(self, err, msg):
         if err:
-            print(f'Message failed delivery: {err}')
+            print(f"Message failed delivery: {err}")
         else:
-            print(f'Message delivered to {msg.topic()} [{msg.partition()}] {msg.offset()},{msg.value()}')
+            print(f"Message delivered to {msg.topic()} [{msg.partition()}] {msg.offset()},{msg.value()}")
 
     def sync_send_message(self, message, topic=None):
         # TODO 这里检查逻辑太丑了
         if self._producer is None:
-            raise RuntimeError('Kafka producer is not initialized')
+            raise RuntimeError("Kafka producer is not initialized")
 
-        if (topic is not None) and (not isinstance(topic, str) or topic == ''):
-            raise ValueError('topic must be a valid string')
+        if (topic is not None) and (not isinstance(topic, str) or topic == ""):
+            raise ValueError("topic must be a valid string")
 
         # APP类型sdk必须指定消息发往的topic
         if self.app and not topic:
-            raise ValueError('App type sdk instance must specify a valid topic when sending a message')
+            raise ValueError("App type sdk instance must specify a valid topic when sending a message")
 
         # TODO 目前不确定是否要向多个topic发送相同消息的逻辑，暂时先不实现
         if len(list(self.dest_topics)) > 1:
-            raise NotImplementedError('Sending message to multiple topics is not implemented yet')
+            raise NotImplementedError("Sending message to multiple topics is not implemented yet")
 
         to_topic = topic if topic else list(self.dest_topics)[0]
 
         try:
             self._producer.produce(
                 to_topic,
-                json.dumps(message).encode('utf-8'),
+                json.dumps(message).encode("utf-8"),
                 callback=self._delivery_callback,
             )
 
             self._producer.flush(timeout=5)
 
         except BufferError:
-            print(f'Local producer queue is full ({len(self._producer)} messages awaiting delivery): try again')
+            print(f"Local producer queue is full ({len(self._producer)} messages awaiting delivery): try again")
         except Exception as e:
-            print(f'Producer error: {e}')
+            print(f"Producer error: {e}")
 
     async def async_send_message(self, message, topic=None):
         # await asyncio.sleep(5)
-        print('=====================after')
         # TODO 检测message是否是dict
         # 将message限制为dict类型不太合理
         # TODO 这里检查逻辑太丑了
         if self._producer is None:
-            raise RuntimeError('Kafka producer is not initialized')
+            raise RuntimeError("Kafka producer is not initialized")
 
-        if (topic is not None) and (not isinstance(topic, str) or topic == ''):
-            raise ValueError('topic must be a valid string')
+        if (topic is not None) and (not isinstance(topic, str) or topic == ""):
+            raise ValueError("topic must be a valid string")
 
         # APP类型sdk必须指定消息发往的topic
         if self.app and not topic:
-            raise ValueError('App type sdk instance must specify a valid topic when sending a message')
+            raise ValueError("App type sdk instance must specify a valid topic when sending a message")
 
         # TODO 目前不确定是否要向多个topic发送相同消息的逻辑，暂时先不实现
         if len(list(self.dest_topics)) > 1:
-            raise NotImplementedError('Sending message to multiple topics is not implemented yet')
+            raise NotImplementedError("Sending message to multiple topics is not implemented yet")
 
         to_topic = topic if topic else list(self.dest_topics)[0]
 
@@ -244,37 +243,36 @@ class MessageSDK:
 
     def commit(self):
         if self._consumer is None:
-            raise RuntimeError('Kafka consumer is not initialized')
+            raise RuntimeError("Kafka consumer is not initialized")
         self._consumer.commit()
 
     # TODO topics应该同时允许字符串类型和list[str]类型
     def subscribe(self, topics=None):
         # TODO check if topics is valid
-        if (topics is not None) and (not isinstance(topics, list)):
-            raise ValueError('topics must be a list')
+        # if (topics is not None) and (not isinstance(topics, list)):
+        #     raise ValueError("topics must be a list")
         if self.app:
             topics_to_sub = topics
         elif self.model:
-            print(self.model)
             if isinstance(topics, list) and len(topics) > 0:
                 topics_to_sub = list(self.subscribed_topics.union(topics))
             else:
                 topics_to_sub = list(self.subscribed_topics)
 
-        print(f'consuming topics: {topics_to_sub}')
+        print(f"consuming topics: {topics_to_sub}")
 
         if self._consumer is None:
-            raise RuntimeError('Kafka consumer is not initialized')
+            raise RuntimeError("Kafka consumer is not initialized")
 
         if not topics_to_sub:
-            raise ValueError('No topics to subscribe')
+            raise ValueError("No topics to subscribe")
 
         self._consumer.subscribe(topics_to_sub)
 
     def consume_message(self):
         # TODO 加日志 打印所有topics
         if self._consumer is None:
-            raise RuntimeError('Kafka consumer is not initialized')
+            raise RuntimeError("Kafka consumer is not initialized")
 
         while not self._shutdown_flag:
             try:
@@ -284,26 +282,26 @@ class MessageSDK:
                     continue
 
                 if msg.error():
-                    print(f'Consumer error: {msg.error()}')
+                    print(f"Consumer error: {msg.error()}")
                     continue
 
                 print(f'Received message: {msg.value().decode("utf-8")}')
 
                 if not callable(self.__message_handler):
-                    raise ValueError('message_handler must be a callable function')
+                    raise ValueError("message_handler must be a callable function")
 
-                msg_content = json.loads(msg.value().decode('utf-8')) if self.__parse_message else msg.value()
+                msg_content = json.loads(msg.value().decode("utf-8")) if self.__parse_message else msg.value()
 
                 self.__message_handler(self, msg.topic(), msg.partition(), msg.offset(), msg_content)
 
             except JSONDecodeError as e:
                 # TODO 目前没有更好处理方式
                 # 如果不commit,遇到错误消息就没有颁发处理了
-                print(f'Parse message JSONDecodeError: {e}, message: {msg.value()}')
+                print(f"Parse message JSONDecodeError: {e}, message: {msg.value()}")
                 if self.__parse_message:
                     self._consumer.commit()
             except Exception as e:
-                print(f'Consumer error: {str(e)}, message: {msg.value()}')
+                print(f"Consumer error: {str(e)}, message: {msg.value()}")
 
                 # TODO 这里不好，如果不sleep,一连串错误消息会导致系统卡死；如果sleep,可能会影响业务响应时间
                 sleep(1)
@@ -327,7 +325,7 @@ class MessageSDK:
 
     def _register_signal(self):
         def signal_handler(signum, frame):
-            print(f'Exit signal:{signal.Signals(signum).name} received, will shutting down gracefully')
+            print(f"Exit signal:{signal.Signals(signum).name} received, will shutting down gracefully")
             self._shutdown()
 
         signal.signal(signal.SIGINT, signal_handler)
@@ -338,12 +336,12 @@ class MessageSDK:
         Asynchronously consume messages by using run_in_executor to avoid blocking.
         """
         if self._consumer is None:
-            raise RuntimeError('Kafka consumer is not initialized')
+            raise RuntimeError("Kafka consumer is not initialized")
 
         while not self._shutdown_flag:
             # print('consuming......')
             if self._consumer is None:
-                raise RuntimeError('Kafka consumer is not initialized')
+                raise RuntimeError("Kafka consumer is not initialized")
 
             try:
                 msg = await self._loop.run_in_executor(None, self._consumer.poll, 0.1)
@@ -351,22 +349,22 @@ class MessageSDK:
                     continue
 
                 if msg.error():
-                    print(f'Consumer error: {msg.error()}')
+                    print(f"Consumer error: {msg.error()}")
                     continue
 
-                msg_content = json.loads(msg.value().decode('utf-8')) if self.__parse_message else msg.value()
+                msg_content = json.loads(msg.value().decode("utf-8")) if self.__parse_message else msg.value()
                 return (msg.topic(), msg.partition(), msg.offset(), msg_content)
             except JSONDecodeError as e:
-                print(f'Parse message JSONDecodeError: {e}, message: {msg.value()}')
+                print(f"Parse message JSONDecodeError: {e}, message: {msg.value()}")
                 if self.__parse_message:
                     self._consumer.commit()
             except Exception as e:
-                print(f'Consumer error: {str(e)}')
+                print(f"Consumer error: {str(e)}")
                 # print(f'message: {msg.value()}')
                 # TODO 这里不好，如果不sleep,一连串错误消息会导致系统卡死；如果sleep,可能会影响业务响应时间
                 await asyncio.sleep(0.1)
 
-        print('exited async_consume_message')
+        print("exited async_consume_message")
 
     async def get_response(self, task_id, condition):
         pass
