@@ -177,7 +177,7 @@ class MTDS:
         try:
             self._producer.produce(
                 to_topic,
-                json.dumps(message).encode("utf-8"),
+                message if isinstance(message, bytes) else json.dumps(message, ensure_ascii=False).encode("utf-8"),
                 callback=self._delivery_callback,
             )
 
@@ -220,7 +220,7 @@ class MTDS:
             # if not isinstance(message, bytes):
             #     raw_msg = str(message).encode('utf-8')
 
-        raw_msg = message if isinstance(message, bytes) else json.dumps(message)
+        raw_msg = message if isinstance(message, bytes) else json.dumps(message, ensure_ascii=False).encode("utf-8")
 
         self._producer.produce(to_topic, raw_msg, on_delivery=ack)
         return result
