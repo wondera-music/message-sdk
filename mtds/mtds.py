@@ -55,7 +55,7 @@ class MTDS:
 
         self._register_signal()
 
-        self._init_topics()
+        # self._init_topics()
 
         # self.print_skd_info()
 
@@ -80,10 +80,10 @@ class MTDS:
             raise ValueError("message_handler must be a callable function")
         self.__message_handler = handler
 
-    def _init_topics(self):
-        if self.model is not None:
-            self.subscribed_topics.add(self.model)
-            self.dest_topics.add(f"{self.model}_result")
+    # def _init_topics(self):
+    #     if self.model is not None:
+    #         self.subscribed_topics.add(self.model)
+    #         self.dest_topics.add(f"{self.model}_result")
 
     def _connect_kafka(self):
         print(f"Trying to connect to Kafka:{self._bootstrap_servers}")
@@ -246,28 +246,25 @@ class MTDS:
             raise RuntimeError("Kafka consumer is not initialized")
         self._consumer.commit()
 
-    # TODO topics应该同时允许字符串类型和list[str]类型
-    def subscribe(self, topics=None):
-        # TODO check if topics is valid
-        # if (topics is not None) and (not isinstance(topics, list)):
-        #     raise ValueError("topics must be a list")
-        if self.app:
-            topics_to_sub = topics
-        elif self.model:
-            if isinstance(topics, list) and len(topics) > 0:
-                topics_to_sub = list(self.subscribed_topics.union(topics))
-            else:
-                topics_to_sub = list(self.subscribed_topics)
+    def subscribe(self, topics):
+        if isinstance(topics, str):
+            if not topics.strip():
+                raise ValueError(f"Topics {topics} is not valid")
+        elif isinstance(topics, list):
+            if not topics:
+                raise ValueError("Topics must be a unempty list")
 
-        print(f"consuming topics: {topics_to_sub}")
+            if not all(isinstance(topic, str) for topic in topics):
+                raise ValueError("topics must be a valid list")
+        else:
+            # 既不是字符串也不是列表时，抛出异常
+            raise ValueError("Topics must be a valid string or list")
 
         if self._consumer is None:
             raise RuntimeError("Kafka consumer is not initialized")
 
-        if not topics_to_sub:
-            raise ValueError("No topics to subscribe")
-
-        self._consumer.subscribe(topics_to_sub)
+        print(f"consuming topics: {topics}")
+        self._consumer.subscribe(topics)
 
     def consume_message(self):
         # TODO 加日志 打印所有topics
