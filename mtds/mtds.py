@@ -250,6 +250,8 @@ class MTDS:
         if isinstance(topics, str):
             if not topics.strip():
                 raise ValueError(f"Topics {topics} is not valid")
+
+            topics = [topics]
         elif isinstance(topics, list):
             if not topics:
                 raise ValueError("Topics must be a unempty list")
