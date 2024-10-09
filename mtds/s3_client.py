@@ -21,3 +21,7 @@ class S3Client:
             extra_args,
         )
         return s3_key
+
+    def put_object(self, body, s3_key, bucket_name="sing-strong", **kwargs):
+        self.s3_client.put_object(Bucket=bucket_name, Key=s3_key, Body=body, **kwargs)
+        return s3_key
